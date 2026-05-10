@@ -1,0 +1,14 @@
+FROM public.ecr.aws/docker/library/gradle:8.14.4-jdk21-corretto AS build
+WORKDIR /app
+
+COPY . .
+
+RUN gradle :user-service:bootJar -x test
+
+FROM public.ecr.aws/docker/library/amazoncorretto:21
+WORKDIR /app
+
+COPY --from=build /app/user-service/build/libs/*.jar app.jar
+
+EXPOSE 8081
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
