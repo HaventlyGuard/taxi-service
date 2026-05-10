@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PassengerService, Passenger } from '../../services/passenger.service';
 
@@ -7,40 +7,28 @@ import { PassengerService, Passenger } from '../../services/passenger.service';
   standalone: true,
   imports: [FormsModule],
   template: `
-    <div class="form-container">
+    <div class="container">
       <h2>Регистрация пассажира</h2>
-      <form (ngSubmit)="onSubmit()">
-        <input [(ngModel)]="passenger.name" name="name" placeholder="Имя" required>
-        <input [(ngModel)]="passenger.email" name="email" placeholder="Email" required>
-        <input [(ngModel)]="passenger.phone" name="phone" placeholder="Телефон" required>
-        <button type="submit">Зарегистрировать</button>
-      </form>
-      @if (success) {
-        <p class="success">Пассажир создан! ID: {{ createdId }}</p>
+      <input [(ngModel)]="p.name" placeholder="Имя">
+      <input [(ngModel)]="p.email" placeholder="Email" type="email">
+      <input [(ngModel)]="p.phone" placeholder="Телефон">
+      <button (click)="save()">Зарегистрироваться</button>
+      @if (done) {
+        <div class="success">Пассажир создан! ID: {{ id }}</div>
       }
     </div>
-  `,
-  styles: [`
-    .form-container { max-width: 400px; margin: 20px auto; padding: 20px; }
-    input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; }
-    button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    .success { color: green; margin-top: 10px; }
-  `]
+  `
 })
 export class PassengerFormComponent {
-  passenger: Passenger = { name: '', email: '', phone: '' };
-  success = false;
-  createdId?: number;
-
-  constructor(private passengerService: PassengerService) {}
-
-  onSubmit(): void {
-    this.passengerService.create(this.passenger).subscribe({
-      next: (p) => {
-        this.success = true;
-        this.createdId = p.id;
-      },
-      error: (e) => alert('Ошибка: ' + e.message)
+  p: Passenger = { name: '', email: '', phone: '' };
+  done = false;
+  id?: number;
+  constructor(private service: PassengerService) {}
+  save() {
+    this.service.create(this.p).subscribe(r => {
+      this.done = true;
+      this.id = r.id;
+      this.p = { name: '', email: '', phone: '' };
     });
   }
 }

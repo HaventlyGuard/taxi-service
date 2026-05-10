@@ -15,7 +15,7 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
@@ -27,10 +27,6 @@
             ],
             "styles": [
               "src/styles.css"
-            ],
-            "polyfills": [
-              "src/polyfills.ts",
-              "zone.js"
             ]
           },
           "configurations": {
@@ -58,7 +54,7 @@
           "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular/build:application",
+          "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
               "buildTarget": "taxi-frontend:build:production"
