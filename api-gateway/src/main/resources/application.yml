@@ -1,0 +1,59 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+
+      routes:
+
+        - id: user-api
+          uri: http://localhost:8081
+          predicates:
+            - Path=/user/**
+
+        - id: trip-api
+          uri: http://localhost:8082
+          predicates:
+            - Path=/trip/**
+
+        - id: notification-api
+          uri: http://localhost:8083
+          predicates:
+            - Path=/notifications/**
+
+        # 🔥 SWAGGER PROXY (ВАЖНО)
+        - id: user-docs
+          uri: http://localhost:8081
+          predicates:
+            - Path=/v3/api-docs/user
+
+        - id: trip-docs
+          uri: http://localhost:8082
+          predicates:
+            - Path=/v3/api-docs/trip
+
+        - id: notification-docs
+          uri: http://localhost:8083
+          predicates:
+            - Path=/v3/api-docs/notification
+
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: user-service
+        url: http://localhost:8081/v3/api-docs
+
+      - name: trip-service
+        url: http://localhost:8082/v3/api-docs
+
+      - name: notification-service
+        url: http://localhost:8083/v3/api-docs
