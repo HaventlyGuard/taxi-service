@@ -1,151 +1,146 @@
-#Taxi Microservices Platform
+# Taxi Microservices Platform
 
-Микросервисное backend-приложение для моделирования сервиса заказа такси.
-Проект демонстрирует архитектуру микросервисов, работу с базой данных, очередями сообщений и многопоточную обработку.
+Микросервисное приложение для заказа такси. Демонстрирует архитектуру микросервисов, работу с PostgreSQL, REST-взаимодействие и многопоточную обработку.
 
 ---
 
 ## Основные возможности
 
-* Регистрация пассажиров и водителей
-* Создание и управление поездками
-* Автоматическое назначение водителя
-* Асинхронная обработка уведомлений
-* Многопоточная обработка задач (worker pool)
-* Защита от race condition
-* Swagger-документация API
+- Регистрация пассажиров и водителей
+- Создание и управление поездками
+- Автоматическое назначение водителя
+- Пул воркеров для обработки уведомлений
+- Расчёт стоимости поездки по расстоянию
+- Рейтинг водителей
+- Статистика поездок
 
 ---
 
 ## Архитектура
 
-Проект состоит из трёх микросервисов:
+4 микросервиса + фронтенд:
 
-### 1. User Service
+### User Service (port 8081)
+- CRUD пассажиров и водителей
+- Поиск свободного водителя
 
-* Управление пассажирами и водителями
-* Назначение свободного водителя (с блокировками)
+### Trip Service (port 8082)
+- Создание поездки с автоматическим назначением водителя
+- Расчёт цены
+- Смена статусов поездки
+- Рейтинг поездки
 
-### 2. Trip Service
+### Notification Service (port 8083)
+- Фоновая обработка задач (worker pool из 4 потоков)
+- Retry до 3 попыток
+- Graceful shutdown
 
-* Создание поездок
-* Назначение водителя
-* Изменение статусов поездки
-* Отправка событий в очередь
+### API Gateway (port 8080)
+- Единая точка входа для всех сервисов
 
-### 3. Notification Service
-
-* Обработка уведомлений в фоне
-* Пул воркеров (многопоточность)
-* Retry логика (до 3 попыток)
+### Frontend (port 4200)
+- Angular SPA с формами регистрации и заказа поездок
 
 ---
 
 ## Технологии
 
-* Java 21
-* Spring Boot
-* Spring Data JPA
-* PostgreSQL
-* Redis
-* RabbitMQ
-* Docker Compose
-* Swagger (OpenAPI)
+- Java 21 + Spring Boot
+- Spring Data JPA + Hibernate
+- PostgreSQL
+- Docker Compose
+- Angular 19
+- Swagger (OpenAPI)
 
 ---
 
-## База данных
+## Запуск
 
-Используется PostgreSQL с одной БД и разными схемами:
+### Предварительные требования
 
-* `user_service`
-* `trip_service`
-* `notification_service`
-
----
-
-## Запуск проекта
+- Docker Desktop
+- PowerShell или терминал
 
 ### 1. Клонировать репозиторий
 
-```bash
-git clone https://github.com/your-repo/taxi-app.git
-cd taxi-app
-```
 
----
+git clone <repo-url>
+cd service-taxi
+2. Запустить все сервисы
+bash
+docker compose up -d --build
+3. Создать схемы в БД
+bash
+docker exec -it postgres psql -U postgres -d taxi -c "CREATE SCHEMA IF NOT EXISTS user_service; CREATE SCHEMA IF NOT EXISTS trip_service; CREATE SCHEMA IF NOT EXISTS notification_service;"
+4. Перезапустить сервисы
+bash
+docker compose restart user-service trip-service notification-service
+Доступы
+Сервис	URL
+Фронтенд	http://localhost:4200
+API Gateway	http://localhost:8080
+User Service Swagger	http://localhost:8081/swagger-ui/index.html
+Trip Service Swagger	http://localhost:8082/swagger-ui/index.html
+Notification Service Swagger	http://localhost:8083/swagger-ui/index.html
+pgAdmin	http://localhost:5050
+pgAdmin: admin@admin.com / admin
 
-### 2. Запустить инфраструктуру
+Использование
+Через веб-интерфейс
+Откройте http://localhost:4200
 
-```bash
-docker-compose up -d
-```
+Зарегистрируйте пассажира и водителя
 
-Это поднимет:
+Создайте поездку, указав ID пассажира
 
-* PostgreSQL
-* Redis
-* RabbitMQ
+Через API
+bash
+# Создать пассажира
+curl -X POST http://localhost:8080/api/passengers \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Иван","email":"ivan@mail.ru","phone":"+79001234567"}'
 
----
+# Создать водителя
+curl -X POST http://localhost:8080/api/drivers \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Петр","email":"petr@mail.ru","phone":"+79007654321","licenseNumber":"AB1234"}'
 
-### 3. Создать схемы в БД
+# Создать поездку
+curl -X POST http://localhost:8080/api/trips \
+  -H "Content-Type: application/json" \
+  -d '{"passengerId":1,"origin":"Москва, Тверская","destination":"Москва, Шереметьево"}'
+База данных
+PostgreSQL с 3 схемами:
 
-Подключись к PostgreSQL и выполни:
+user_service — passengers, drivers
 
-```sql
-CREATE SCHEMA user_service;
-CREATE SCHEMA trip_service;
-CREATE SCHEMA notification_service;
-```
+trip_service — trips
 
----
+notification_service — notification_tasks
 
-### 4. Запустить сервисы
+Подключение через pgAdmin: http://localhost:5050
 
-Каждый сервис запускается отдельно:
+Host: postgres
 
-```bash
-./gradlew :user-service:run
-```
+Port: 5432
 
-```bash
-./gradlew :trip-service:run
-```
+Database: taxi
 
-```bash
-./gradlew :notification-service:run
-```
+User: postgres
 
----
+Password: postgres
 
-## API (Swagger)
+Основной сценарий работы
+Регистрация пассажира
 
-После запуска:
+Регистрация водителя
 
-* User Service
-  http://localhost:8081/swagger-ui/index.html
+Создание поездки
 
-* Trip Service
-  http://localhost:8082/swagger-ui/index.html
+Автоматическое назначение водителя
 
-* Notification Service
-  http://localhost:8083/swagger-ui/index.html
+Расчёт стоимости по расстоянию
 
----
+Смена статусов поездки
 
-## Основной сценарий работы
-
-1. Создание пассажира
-2. Регистрация водителя
-3. Создание поездки
-4. Автоматическое назначение водителя
-5. Отправка события в очередь
-6. Notification Service обрабатывает уведомление
-
-
-## 👨‍💻 Автор
-
-Проект выполнен в рамках изучения микросервисной архитектуры и backend-разработки.
-
----
+Обработка уведомлений в фоне
