@@ -1,15 +1,15 @@
-package notification_api.controller;
+
+        package notification_api.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import notification_api.entity.NotificationTask;
+import notification_api.entity.TaskStatus;
 import notification_api.repository.NotificationRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+        import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -21,17 +21,23 @@ public class NotificationController {
 
     private final NotificationRepository repository;
 
+    @PostMapping
+    @Operation(summary = "Создать задачу уведомления")
+    public NotificationTask create(@RequestBody NotificationTask task) {
+        task.setStatus(TaskStatus.PENDING);
+        task.setAttempts(0);
+        task.setCreatedAt(LocalDateTime.now());
+        return repository.save(task);
+    }
+
     @GetMapping("/{tripId}")
-    @Operation(summary = "Вернуть уведомление о поездке")
+    @Operation(summary = "Получить уведомления по поездке")
     public List<NotificationTask> getByTrip(@PathVariable Long tripId) {
-        return repository.findAll()
-                .stream()
-                .filter(n -> n.getTripId().equals(tripId))
-                .toList();
+        return repository.findByTripId(tripId);
     }
 
     @GetMapping("/health")
-    @Operation(summary = "Health check сервиса", description = "Проверка готовности сервиса")
+    @Operation(summary = "Health check")
     public Map<String, String> health() {
         return Map.of("status", "OK", "service", "notification-service");
     }

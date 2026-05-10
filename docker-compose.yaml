@@ -16,6 +16,8 @@ services:
       timeout: 5s
       retries: 5
 
+
+
   user-service:
     build:
       context: .
@@ -77,6 +79,16 @@ services:
       - user-service
       - trip-service
       - notification-service
+
+  frontend:
+    build:
+      context: ./taxi-frontend
+      dockerfile: Dockerfile
+    container_name: taxi-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - api-gateway
 
 volumes:
   pgdata:

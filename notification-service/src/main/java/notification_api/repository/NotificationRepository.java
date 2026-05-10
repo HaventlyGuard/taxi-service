@@ -9,4 +9,7 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<NotificationTask, Long> {
 
     List<NotificationTask> findByStatus(TaskStatus status);
+    List<NotificationTask> findByTripId(Long tripId);
 }
+
+
