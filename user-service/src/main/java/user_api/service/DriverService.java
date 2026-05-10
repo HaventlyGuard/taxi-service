@@ -3,12 +3,10 @@ package user_api.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import user_api.dto.CreateDriverRequest;
-import user_api.dto.DriverRatingEvent;
 import user_api.dto.DriverResponse;
 import user_api.dto.UpdateDriverRequest;
 import user_api.entity.Driver;
@@ -22,9 +20,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DriverService {
-    private static final String DRIVER_STATUS_KEY = "driver:status:";
     private final DriverRepository repository;
-    private final RedisTemplate<String, Object> redisTemplate;
     private final DriverMapper mapper;
 
     public Driver create(CreateDriverRequest request) {
@@ -36,23 +32,11 @@ public class DriverService {
         d.setStatus(DriverStatus.AVAILABLE);
         d.setCreatedAt(LocalDateTime.now());
 
-        Driver saved = repository.save(d);
-
-        updateDriverStatusInCache(saved.getId(), saved.getStatus());
-
-        return saved;
-    }
-
-    private void updateDriverStatusInCache(Long driverId, DriverStatus status) {
-        redisTemplate.opsForValue().set(
-                DRIVER_STATUS_KEY + driverId,
-                status.name()
-        );
+        return repository.save(d);
     }
 
     @Transactional
     public void updateRating(Long driverId, Integer newRating) {
-
         Driver driver = repository.findById(driverId)
                 .orElseThrow(() -> new RuntimeException("Driver not found"));
 
@@ -95,21 +79,14 @@ public class DriverService {
         Driver driver = drivers.get(0);
         driver.setStatus(DriverStatus.BUSY);
 
-        Driver saved = repository.save(driver);
-
-        updateDriverStatusInCache(saved.getId(), saved.getStatus());
-
-        return saved;
+        return repository.save(driver);
     }
 
     @Transactional
     public void updateStatus(Long id, DriverStatus status) {
         Driver driver = get(id);
         driver.setStatus(status);
-
         repository.save(driver);
-
-        updateDriverStatusInCache(id, status);
     }
 
     @Transactional
@@ -120,9 +97,6 @@ public class DriverService {
         driver.setUpdatedAt(LocalDateTime.now());
 
         Driver saved = repository.save(driver);
-
-        updateDriverStatusInCache(saved.getId(), saved.getStatus());
-
         return mapper.toDto(saved);
     }
 
@@ -131,4 +105,3 @@ public class DriverService {
         repository.deleteById(id);
     }
 }
-

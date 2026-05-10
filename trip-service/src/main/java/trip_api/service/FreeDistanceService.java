@@ -1,8 +1,7 @@
 package trip_api.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value; // ✅ Добавлен импорт
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -11,9 +10,6 @@ import trip_api.dto.NominatimResult;
 import trip_api.dto.OSRMResponse;
 import trip_api.entity.DistanceResult;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Locale;
 
 @Service
@@ -21,43 +17,33 @@ import java.util.Locale;
 public class FreeDistanceService {
 
     private final RestTemplate restTemplate;
-    private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${api.locationiq.key}")
+    @Value("${api.locationiq.key:placeholder}")
     private String apiKey;
 
-    private static final String GEO_CACHE = "geo:";
     private static final String BASE_URL = "https://us1.locationiq.com/v1";
 
-    public FreeDistanceService(RestTemplate restTemplate, RedisTemplate<String, Object> redisTemplate) {
+    public FreeDistanceService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-        this.redisTemplate = redisTemplate;
     }
 
     public LatLon geocode(String address) {
-        String key = GEO_CACHE + address.toLowerCase().trim();
-        LatLon cached = (LatLon) redisTemplate.opsForValue().get(key);
-        if (cached != null) return cached;
-
         String url = UriComponentsBuilder.fromUriString(BASE_URL + "/search.php")
                 .queryParam("key", apiKey)
-                .queryParam("q", address) // Spring закодирует этот параметр сам
+                .queryParam("q", address)
                 .queryParam("format", "json")
                 .queryParam("limit", 1)
                 .queryParam("countrycodes", "ru")
                 .build()
-                .toUriString(); // .toUriString() тут лучше, чем .toUri()
+                .toUriString();
 
-        log.info("Final URL: {}", url); // Сравните этот вывод с тем, что вы писали в curl
+        log.info("Final URL: {}", url);
 
         try {
             NominatimResult[] results = restTemplate.getForObject(url, NominatimResult[].class);
-
             if (results != null && results.length > 0) {
                 NominatimResult r = results[0];
-                LatLon coords = new LatLon(Double.parseDouble(r.lat), Double.parseDouble(r.lon));
-                redisTemplate.opsForValue().set(key, coords, Duration.ofDays(7));
-                return coords;
+                return new LatLon(Double.parseDouble(r.lat), Double.parseDouble(r.lon));
             }
         } catch (Exception e) {
             log.error("API error: {}", e.getMessage());
